@@ -433,16 +433,17 @@ async function carregarNotas(){
 
 function syncParcela(el, mudou) {
     const row = el.closest('.flex');
+    if(!row) return;
     const inputDias = row.querySelector('.dias-parcela');
     const inputData = row.querySelector('.data-parcela');
     
     const isEdit = row.closest('#edit_container_parcelas') !== null;
     const inputEmissao = isEdit ? document.getElementById('edit_data_emissao') : document.getElementById('data_emissao');
-    const baseDateStr = inputEmissao.value;
+    if(!inputEmissao || !inputEmissao.value) return;
 
-    if (!baseDateStr) return;
-    
+    const baseDateStr = inputEmissao.value;
     const baseDate = new Date(baseDateStr + "T00:00:00");
+    if(isNaN(baseDate.getTime())) return;
 
     if (mudou === 'dias') {
         const dias = parseInt(inputDias.value) || 0;
@@ -451,6 +452,7 @@ function syncParcela(el, mudou) {
     } else if (mudou === 'data') {
         if (!inputData.value) return;
         const targetDate = new Date(inputData.value + "T00:00:00");
+        if(isNaN(targetDate.getTime())) return;
         const diffTime = targetDate - baseDate;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         inputDias.value = diffDays <= 0 ? "00" : diffDays;
@@ -467,6 +469,7 @@ function syncAllParcelas(isEdit) {
 
 function adicionarParcelaRow(containerId, dias="", valor="", venc="") {
     const c = document.getElementById(containerId);
+    if(!c) return;
     const div = document.createElement("div");
     div.className = "flex flex-wrap md:flex-nowrap gap-3 items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm";
     div.innerHTML = `
@@ -546,14 +549,29 @@ function normalizarNotas(){
 
 function carregarLojas(){
   const cadastro=document.getElementById("loja_select"), filtro=document.getElementById("filtro_loja"), edicao=document.getElementById("edit_loja");
-  cadastro.innerHTML='<option value="">Selecione...</option>'; filtro.innerHTML='<option value="">Todas</option>'; edicao.innerHTML="";
-  Object.keys(lojasDB).forEach(loja=>{cadastro.add(new Option(loja,loja)); filtro.add(new Option(loja,loja)); edicao.add(new Option(loja,loja))});
+  if(cadastro) cadastro.innerHTML='<option value="">Selecione...</option>'; 
+  if(filtro) filtro.innerHTML='<option value="">Todas</option>'; 
+  if(edicao) edicao.innerHTML="";
+  Object.keys(lojasDB).forEach(loja=>{
+    if(cadastro) cadastro.add(new Option(loja,loja)); 
+    if(filtro) filtro.add(new Option(loja,loja)); 
+    if(edicao) edicao.add(new Option(loja,loja));
+  });
 }
-function atualizarCnpjLoja(){const loja=loja_select.value; cnpj_destino_display.innerText=lojasDB[loja]||"---"}
+
+function atualizarCnpjLoja(){
+  const lojaSelect = document.getElementById("loja_select");
+  const display = document.getElementById("cnpj_destino_display");
+  if(!lojaSelect || !display) return;
+  const loja = lojaSelect.value; 
+  display.innerText = lojasDB[loja] || "---";
+}
 
 function verificarNotaExistente(){
-  const box=document.getElementById("aviso_nota_existente"); if(!box)return;
-  const digitado=(numero_nota.value||"").trim().toLowerCase();
+  const box=document.getElementById("aviso_nota_existente"); 
+  const numInput=document.getElementById("numero_nota");
+  if(!box || !numInput) return;
+  const digitado=(numInput.value||"").trim().toLowerCase();
   if(!digitado){box.innerHTML="";return}
   const encontradas=notas.filter(n=>String(n.numero||"").toLowerCase().includes(digitado));
   if(!encontradas.length){box.innerHTML="";return}
@@ -568,18 +586,30 @@ function verificarNotaExistente(){
     </ul>
   </div>`;
 }
-function atualizarCnpjEdicao(){const loja=edit_loja.value; edit_cnpj_destino.value=lojasDB[loja]||""}
 
-async function showTab(tab){
+function atualizarCnpjEdicao(){
+  const editLoja = document.getElementById("edit_loja");
+  const editDestino = document.getElementById("edit_cnpj_destino");
+  if(!editLoja || !editDestino) return;
+  const loja = editLoja.value; 
+  editDestino.value = lojasDB[loja] || "";
+}
+
+function showTab(tab){
   document.querySelectorAll(".tab-content").forEach(e=>e.classList.add("hidden"));
   document.querySelectorAll(".tab-btn").forEach(e=>e.classList.remove("tab-active"));
-  document.getElementById(tab).classList.remove("hidden");document.getElementById("btn-"+tab).classList.add("tab-active");
+  
+  const targetTab = document.getElementById(tab);
+  const targetBtn = document.getElementById("btn-" + tab);
+  if(targetTab) targetTab.classList.remove("hidden");
+  if(targetBtn) targetBtn.classList.add("tab-active");
+  
   if(tab==="lista") renderTable(); 
   if(tab==="dashboard") renderCharts();
 }
 
 function criarFiltrosStatus(){
-  const c=document.getElementById("statusButtons");c.innerHTML="";
+  const c=document.getElementById("statusButtons"); if(!c) return; c.innerHTML="";
   [["Todos",""],...statusList.map(s=>[s,s])].forEach(([texto,valor],idx)=>{
     const b=document.createElement("button"); b.type="button"; b.innerText=texto; b.dataset.status=valor;
     b.className="status-btn px-4 py-2 rounded-full border border-slate-200 bg-white text-xs font-black hover:bg-blue-50 transition";
@@ -591,6 +621,7 @@ function criarFiltrosStatus(){
 
 function criarFiltrosDash() {
   const sMes=document.getElementById("mes_select");
+  if(!sMes) return;
   sMes.innerHTML='<option value="Todos">Ano Todo</option>';
   meses.forEach((m,i)=>sMes.add(new Option(m,i)));
   sMes.value=new Date().getMonth();
@@ -610,25 +641,28 @@ document.getElementById("nfForm").addEventListener("submit", async function(e){
   btn.disabled = true;
   btn.innerText = "GRAVANDO...";
 
-  const numero=numero_nota.value.trim(), data=data_emissao.value, loja=loja_select.value, valor=Number(valor_total.value)||0;
+  const numero=document.getElementById("numero_nota").value.trim();
+  const data=document.getElementById("data_emissao").value;
+  const loja=document.getElementById("loja_select").value;
+  const valor=Number(document.getElementById("valor_total").value)||0;
   const parcelasObj = extrairFaturasForm("container_parcelas");
 
   const nova={
     numero, 
-    natureza:natureza.value, 
+    natureza:document.getElementById("natureza").value, 
     data_emissao:data,
-    cnpj_emitente:cnpj_emitente.value, 
-    razao_social_prestador:razao_social_prestador.value,
-    nome_fantasia_prestador:nome_fantasia_prestador.value, 
+    cnpj_emitente:document.getElementById("cnpj_emitente").value, 
+    razao_social_prestador:document.getElementById("razao_social_prestador").value,
+    nome_fantasia_prestador:document.getElementById("nome_fantasia_prestador").value, 
     loja, 
     cnpj_destino:lojasDB[loja]||"",
-    descricao:descricao.value, 
-    observacao:observacao.value, 
-    responsavel:responsavel.value, 
+    descricao:document.getElementById("descricao").value, 
+    observacao:document.getElementById("observacao").value, 
+    responsavel:document.getElementById("responsavel").value, 
     supervisor:document.getElementById("supervisor").value, 
-    tipo_despesa:tipo_despesa.value,
+    tipo_despesa:document.getElementById("tipo_despesa").value,
     valor_total:valor, 
-    forma_pagamento:forma_pagamento.value, 
+    forma_pagamento:document.getElementById("forma_pagamento").value, 
     parcelas:parcelasObj.parcelasStr, 
     status:document.getElementById("status_cadastro").value||"Supervisor",
     faturas:parcelasObj.faturas
@@ -652,26 +686,46 @@ document.getElementById("nfForm").addEventListener("submit", async function(e){
 });
 
 function novoCadastro(){
-  document.getElementById("nfForm").reset(); data_emissao.value=new Date().toISOString().slice(0,10);
-  tipo_despesa.value="Manutenção"; atualizarCnpjLoja(); 
-  document.getElementById("badge_cnpj").style.display = "none";
-  document.getElementById("container_parcelas").innerHTML = "";
-  document.getElementById("supervisor").value = "";
+  const form = document.getElementById("nfForm");
+  if(form) form.reset();
+
+  const dataEmissao = document.getElementById("data_emissao");
+  if(dataEmissao) dataEmissao.value = new Date().toISOString().slice(0,10);
+
+  const tipoDespesa = document.getElementById("tipo_despesa");
+  if(tipoDespesa) tipoDespesa.value = "Manutenção"; 
+
+  atualizarCnpjLoja(); 
+
+  const badgeCnpj = document.getElementById("badge_cnpj");
+  if(badgeCnpj) badgeCnpj.style.display = "none";
+
+  const containerParcelas = document.getElementById("container_parcelas");
+  if(containerParcelas) containerParcelas.innerHTML = "";
+
+  const supervisor = document.getElementById("supervisor");
+  if(supervisor) supervisor.value = "";
+
   adicionarParcelaRow("container_parcelas", "00", "");
+
   const selStatus=document.getElementById("status_cadastro");
-  selStatus.innerHTML=statusList.map(s=>`<option ${s==="Supervisor"?"selected":""}>${escapeHTML(s)}</option>`).join("");
-  const avisoBox=document.getElementById("aviso_nota_existente"); if(avisoBox)avisoBox.innerHTML="";
+  if(selStatus) {
+    selStatus.innerHTML=statusList.map(s=>`<option ${s==="Supervisor"?"selected":""}>${escapeHTML(s)}</option>`).join("");
+  }
+
+  const avisoBox=document.getElementById("aviso_nota_existente"); 
+  if(avisoBox) avisoBox.innerHTML="";
 }
 
 function renderTable(){
   const tbody=document.getElementById("tabela_notas"); if(!tbody)return;
-  const busca=(filtro_busca.value||"").toLowerCase().trim(), 
-        loja=filtro_loja.value, 
-        supFiltro=document.getElementById("filtro_supervisor").value.toLowerCase().trim(),
-        respFiltro=document.getElementById("filtro_responsavel").value,
-        status=filtro_status.value, 
-        ini=filtro_data_ini.value, 
-        fim=filtro_data_fim.value;
+  const busca=(document.getElementById("filtro_busca")?.value||"").toLowerCase().trim(), 
+        loja=document.getElementById("filtro_loja")?.value||"", 
+        supFiltro=(document.getElementById("filtro_supervisor")?.value||"").toLowerCase().trim(),
+        respFiltro=document.getElementById("filtro_responsavel")?.value||"",
+        status=document.getElementById("filtro_status")?.value||"", 
+        ini=document.getElementById("filtro_data_ini")?.value||"", 
+        fim=document.getElementById("filtro_data_fim")?.value||"";
         
   let arr=notas.filter(n=>{
     if(!status&&n.status==="Concluído")return false; if(status&&n.status!==status)return false;
@@ -734,18 +788,42 @@ async function deleteNota(id){
   }
 }
 
-function limparFiltros(){filtro_busca.value=""; filtro_loja.value=""; document.getElementById("filtro_supervisor").value=""; document.getElementById("filtro_responsavel").value=""; filtro_data_ini.value=""; filtro_data_fim.value=""; filtro_status.value=""; document.querySelectorAll(".status-btn").forEach(b=>b.classList.toggle("active",b.dataset.status==="")); renderTable()}
+function limparFiltros(){
+  document.getElementById("filtro_busca").value=""; 
+  document.getElementById("filtro_loja").value=""; 
+  document.getElementById("filtro_supervisor").value=""; 
+  document.getElementById("filtro_responsavel").value=""; 
+  document.getElementById("filtro_data_ini").value=""; 
+  document.getElementById("filtro_data_fim").value=""; 
+  document.getElementById("filtro_status").value=""; 
+  document.querySelectorAll(".status-btn").forEach(b=>b.classList.toggle("active",b.dataset.status==="")); 
+  renderTable();
+}
 
 function abrirEdicao(id){
   const n=notas.find(x=>String(x.id)===String(id));if(!n)return;
-  edit_id.value=n.id; edit_numero.value=n.numero; edit_natureza.value=n.natureza; edit_data_emissao.value=n.data_emissao;
-  edit_cnpj_emitente.value=n.cnpj_emitente; mascaraCpfCnpj(edit_cnpj_emitente, 'badge_edit_cnpj'); 
-  edit_razao_social_prestador.value=n.razao_social_prestador||"";
-  edit_nome_fantasia_prestador.value=n.nome_fantasia_prestador||""; edit_loja.value=n.loja; atualizarCnpjEdicao();
-  edit_tipo_despesa.value=n.tipo_despesa||"Manutenção"; edit_descricao.value=n.descricao||""; 
-  edit_observacao.value=n.observacao||""; edit_responsavel.value=n.responsavel||""; edit_supervisor.value=n.supervisor||"";
-  edit_valor.value=n.valor_total; edit_pagamento.value=n.forma_pagamento;
-  edit_status.innerHTML=statusList.map(s=>`<option ${n.status===s?"selected":""}>${escapeHTML(s)}</option>`).join("");
+  document.getElementById("edit_id").value=n.id; 
+  document.getElementById("edit_numero").value=n.numero; 
+  document.getElementById("edit_natureza").value=n.natureza; 
+  document.getElementById("edit_data_emissao").value=n.data_emissao;
+  
+  const editCnpj = document.getElementById("edit_cnpj_emitente");
+  editCnpj.value=n.cnpj_emitente; 
+  mascaraCpfCnpj(editCnpj, 'badge_edit_cnpj'); 
+  
+  document.getElementById("edit_razao_social_prestador").value=n.razao_social_prestador||"";
+  document.getElementById("edit_nome_fantasia_prestador").value=n.nome_fantasia_prestador||""; 
+  document.getElementById("edit_loja").value=n.loja; 
+  atualizarCnpjEdicao();
+
+  document.getElementById("edit_tipo_despesa").value=n.tipo_despesa||"Manutenção"; 
+  document.getElementById("edit_descricao").value=n.descricao||""; 
+  document.getElementById("edit_observacao").value=n.observacao||""; 
+  document.getElementById("edit_responsavel").value=n.responsavel||""; 
+  document.getElementById("edit_supervisor").value=n.supervisor||"";
+  document.getElementById("edit_valor").value=n.valor_total; 
+  document.getElementById("edit_pagamento").value=n.forma_pagamento;
+  document.getElementById("edit_status").innerHTML=statusList.map(s=>`<option ${n.status===s?"selected":""}>${escapeHTML(s)}</option>`).join("");
   
   document.getElementById("edit_container_parcelas").innerHTML = "";
   if (n.faturas && n.faturas.length) {
@@ -757,39 +835,44 @@ function abrirEdicao(id){
       adicionarParcelaRow("edit_container_parcelas", "00", n.valor_total, "");
   }
 
-  modalEdicao.classList.remove("hidden"); modalEdicao.classList.add("flex");
+  const modal = document.getElementById("modalEdicao");
+  modal.classList.remove("hidden"); modal.classList.add("flex");
 }
 
-function fecharEdicao(){modalEdicao.classList.add("hidden"); modalEdicao.classList.remove("flex")}
+function fecharEdicao(){
+  const modal = document.getElementById("modalEdicao");
+  modal.classList.add("hidden"); modal.classList.remove("flex");
+}
 
 document.getElementById("formEdicao").addEventListener("submit", async function(e){
   e.preventDefault(); 
-  const id = edit_id.value;
+  const id = document.getElementById("edit_id").value;
   const btn = document.getElementById("btnAtualizarNota");
   btn.disabled = true;
   btn.innerText = "SALVANDO...";
 
-  const valor=Number(edit_valor.value)||0, data=edit_data_emissao.value;
+  const valor=Number(document.getElementById("edit_valor").value)||0, data=document.getElementById("edit_data_emissao").value;
+  const editLoja = document.getElementById("edit_loja").value;
   const parcelasObj = extrairFaturasForm("edit_container_parcelas");
 
   const dadosAtualizados = {
-    numero: edit_numero.value.trim(),
-    natureza: edit_natureza.value,
+    numero: document.getElementById("edit_numero").value.trim(),
+    natureza: document.getElementById("edit_natureza").value,
     data_emissao: data,
-    cnpj_emitente: edit_cnpj_emitente.value,
-    razao_social_prestador: edit_razao_social_prestador.value,
-    nome_fantasia_prestador: edit_nome_fantasia_prestador.value,
-    loja: edit_loja.value,
-    cnpj_destino: lojasDB[edit_loja.value]||"",
-    tipo_despesa: edit_tipo_despesa.value,
-    descricao: edit_descricao.value,
-    observacao: edit_observacao.value,
-    responsavel: edit_responsavel.value,
-    supervisor: edit_supervisor.value,
+    cnpj_emitente: document.getElementById("edit_cnpj_emitente").value,
+    razao_social_prestador: document.getElementById("edit_razao_social_prestador").value,
+    nome_fantasia_prestador: document.getElementById("edit_nome_fantasia_prestador").value,
+    loja: editLoja,
+    cnpj_destino: lojasDB[editLoja]||"",
+    tipo_despesa: document.getElementById("edit_tipo_despesa").value,
+    descricao: document.getElementById("edit_descricao").value,
+    observacao: document.getElementById("edit_observacao").value,
+    responsavel: document.getElementById("edit_responsavel").value,
+    supervisor: document.getElementById("edit_supervisor").value,
     valor_total: valor,
-    forma_pagamento: edit_pagamento.value,
+    forma_pagamento: document.getElementById("edit_pagamento").value,
     parcelas: parcelasObj.parcelasStr,
-    status: edit_status.value,
+    status: document.getElementById("edit_status").value,
     faturas: parcelasObj.faturas
   };
 
@@ -870,10 +953,24 @@ function normalizarValor(v){if(typeof v==="number")return v; let s=String(v??"")
 function normalizarDataImport(v){if(!v)return ""; if(typeof v==="number"&&typeof XLSX!=="undefined"){const d=XLSX.SSF.parse_date_code(v); return `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`} const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s; let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(m)return `${m[3]}-${m[2]}-${m[1]}`; return s}
 
 function renderCharts(){
-  const ano=Number(document.getElementById("ano_select").value);
-  const mesVal=document.getElementById("mes_select").value;
-  const lojaFiltro=document.getElementById("dash_loja_select").value;
-  if(!ano||typeof Chart==="undefined")return;
+  const anoEl = document.getElementById("ano_select");
+  const mesEl = document.getElementById("mes_select");
+  const lojaEl = document.getElementById("dash_loja_select");
+
+  if(!anoEl || !mesEl || !lojaEl) return;
+
+  const ano = Number(anoEl.value);
+  const mesVal = mesEl.value;
+  const lojaFiltro = lojaEl.value;
+
+  if(!ano || typeof Chart === "undefined") return;
+
+  const cComp = document.getElementById("chartCompetencia");
+  const cProj = document.getElementById("chartProjetado");
+  const cLojaComp = document.getElementById("chartLojaComp");
+  const cLojaProj = document.getElementById("chartLojaProj");
+
+  if(!cComp || !cProj || !cLojaComp || !cLojaProj) return;
 
   if(chartCompetencia) chartCompetencia.destroy();
   if(chartProjetado) chartProjetado.destroy();
@@ -897,7 +994,7 @@ function renderCharts(){
 
     if(n.data_emissao){
       const d=new Date(n.data_emissao+"T00:00:00");
-      if(d.getFullYear()===ano) {
+      if(!isNaN(d.getTime()) && d.getFullYear()===ano) {
          const m=d.getMonth();
          if(lojaFiltro==="Todas" || n.loja===lojaFiltro) {
             (tipo==="Expansão"?compExp:compMan)[m]+=Number(n.valor_total)||0;
@@ -911,7 +1008,7 @@ function renderCharts(){
     (n.faturas||[]).forEach(f=>{
       if(!f.vencimento)return;
       const d=new Date(f.vencimento+"T00:00:00");
-      if(d.getFullYear()===ano) {
+      if(!isNaN(d.getTime()) && d.getFullYear()===ano) {
          const m=d.getMonth();
          if(lojaFiltro==="Todas" || n.loja===lojaFiltro) {
             (tipo==="Expansão"?projExp:projMan)[m]+=Number(f.valor)||0;
@@ -926,21 +1023,22 @@ function renderCharts(){
   const opts={responsive:true, plugins:{legend:{display:true}, tooltip:{callbacks:{label:c=>c.dataset.label+": R$ "+moeda(c.raw)}}, datalabels:{anchor:"end", align:"top", font:{size:8, weight:"bold"}, formatter:v=>v?"R$ "+moeda(v):""}}, scales:{y:{beginAtZero:true, ticks:{callback:v=>"R$ "+Number(v).toLocaleString("pt-BR")}}}};
   const optsLojas={responsive:true, plugins:{legend:{display:true}, tooltip:{callbacks:{label:c=>c.dataset.label+": R$ "+moeda(c.raw)}}, datalabels:{anchor:"end", align:"top", font:{size:7, weight:"bold"}, formatter:v=>v?moeda(v):""}}, scales:{y:{beginAtZero:true, ticks:{callback:v=>"R$ "+Number(v).toLocaleString("pt-BR")}}}, layout:{padding:{top:15}}};
 
-  chartCompetencia=new Chart(document.getElementById("chartCompetencia"),{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:compMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:compExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts, plugins:[ChartDataLabels]});
-  chartProjetado=new Chart(document.getElementById("chartProjetado"),{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:projMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:projExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts, plugins:[ChartDataLabels]});
+  chartCompetencia=new Chart(cComp,{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:compMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:compExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts});
+  chartProjetado=new Chart(cProj,{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:projMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:projExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts});
 
-  window.chartLojaComp=new Chart(document.getElementById("chartLojaComp"),{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaCompMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaCompExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas, plugins:[ChartDataLabels]});
-  window.chartLojaProj=new Chart(document.getElementById("chartLojaProj"),{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaProjMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaProjExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas, plugins:[ChartDataLabels]});
+  window.chartLojaComp=new Chart(cLojaComp,{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaCompMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaCompExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas});
+  window.chartLojaProj=new Chart(cLojaProj,{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaProjMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaProjExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas});
 }
 
 window.addEventListener("DOMContentLoaded", async ()=>{
+  if (typeof Chart !== "undefined" && typeof ChartDataLabels !== "undefined") {
+    try { Chart.register(ChartDataLabels); } catch(e){}
+  }
   criarFiltrosDash();
   carregarLojas(); 
   criarFiltrosStatus(); 
   await carregarNotas();
   novoCadastro(); 
-  renderTable(); 
-  renderCharts(); 
   showTab("cadastro");
 });
 
