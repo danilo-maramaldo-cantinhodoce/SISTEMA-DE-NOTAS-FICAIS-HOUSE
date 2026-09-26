@@ -361,7 +361,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
 // Configurações do Supabase (Corrigido endpoint final)
 const SUPABASE_URL = "https://xdrizeuameukmdfhceqx.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_JSVE3aetHB6mNOnNAbabmQ_5RT6YwCY";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const lojasDB={
 "Renascença":"19.644.944/0004-72","Vila Isabel":"19.644.944/0012-82","Festi Africanos":"44.016.976/0003-90",
@@ -419,7 +419,7 @@ function mascaraCpfCnpj(input, badgeId){
 
 async function carregarNotas(){
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('notas_fiscais')
       .select('*')
       .order('id', { ascending: false });
@@ -675,7 +675,7 @@ document.getElementById("nfForm").addEventListener("submit", async function(e){
   };
 
   try {
-    const { error } = await supabase.from('notas_fiscais').insert([nova]);
+    const { error } = await supabaseClient.from('notas_fiscais').insert([nova]);
     if (error) throw error;
     alert("✅ Nota cadastrada no Supabase com sucesso!");
     await carregarNotas();
@@ -766,7 +766,7 @@ function renderTable(){
 
 async function alterarStatus(id,v){
   try {
-    const { error } = await supabase.from('notas_fiscais').update({ status: v }).eq('id', id);
+    const { error } = await supabaseClient.from('notas_fiscais').update({ status: v }).eq('id', id);
     if (error) throw error;
     await carregarNotas();
     renderTable(); 
@@ -782,7 +782,7 @@ async function deleteNota(id){
   if(!n)return; 
   if(confirm("Tem certeza que deseja excluir a NF "+n.numero+"?")){
     try {
-      const { error } = await supabase.from('notas_fiscais').delete().eq('id', id);
+      const { error } = await supabaseClient.from('notas_fiscais').delete().eq('id', id);
       if (error) throw error;
       await carregarNotas();
       renderTable(); 
@@ -883,7 +883,7 @@ document.getElementById("formEdicao").addEventListener("submit", async function(
   };
 
   try {
-    const { error } = await supabase.from('notas_fiscais').update(dadosAtualizados).eq('id', id);
+    const { error } = await supabaseClient.from('notas_fiscais').update(dadosAtualizados).eq('id', id);
     if (error) throw error;
     alert("✅ Nota atualizada com sucesso!");
     await carregarNotas();
@@ -944,7 +944,7 @@ async function importarDados(input){
     }
     if(!importadas.length){alert("Nenhum lançamento reconhecido no arquivo.");return}
     
-    const { error } = await supabase.from('notas_fiscais').insert(importadas);
+    const { error } = await supabaseClient.from('notas_fiscais').insert(importadas);
     if (error) throw error;
 
     await carregarNotas();
