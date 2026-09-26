@@ -358,8 +358,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
 </div>
 
 <script>
-// Configurações do Supabase
-const SUPABASE_URL = "https://xdrizeuameukmdfhceqx.supabase.co/rest/v1/";
+// Configurações do Supabase (Corrigido endpoint final)
+const SUPABASE_URL = "https://xdrizeuameukmdfhceqx.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_JSVE3aetHB6mNOnNAbabmQ_5RT6YwCY";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -381,8 +381,11 @@ const siglasLojas={
 
 const statusList=["Supervisor","Não Recebido","Recebido","Contabilidade","Pedido","CPD","Financeiro","Arquivamento","Concluído"];
 const meses=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-let notas=[], chartCompetencia=null, chartProjetado=null;
-window.chartLojaComp=null; window.chartLojaProj=null;
+
+// Variáveis renomeadas para não conflitar com IDs do HTML
+let notas=[];
+let instChartComp=null, instChartProj=null;
+let instChartLojaComp=null, instChartLojaProj=null;
 
 function escapeHTML(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function moeda(v){return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -414,7 +417,6 @@ function mascaraCpfCnpj(input, badgeId){
     input.value = v;
 }
 
-// Funções de Conectividade Assíncrona via Supabase
 async function carregarNotas(){
   try {
     const { data, error } = await supabase
@@ -596,16 +598,20 @@ function atualizarCnpjEdicao(){
 }
 
 function showTab(tab){
-  document.querySelectorAll(".tab-content").forEach(e=>e.classList.add("hidden"));
-  document.querySelectorAll(".tab-btn").forEach(e=>e.classList.remove("tab-active"));
-  
-  const targetTab = document.getElementById(tab);
-  const targetBtn = document.getElementById("btn-" + tab);
-  if(targetTab) targetTab.classList.remove("hidden");
-  if(targetBtn) targetBtn.classList.add("tab-active");
-  
-  if(tab==="lista") renderTable(); 
-  if(tab==="dashboard") renderCharts();
+  try {
+    document.querySelectorAll(".tab-content").forEach(e=>e.classList.add("hidden"));
+    document.querySelectorAll(".tab-btn").forEach(e=>e.classList.remove("tab-active"));
+    
+    const targetTab = document.getElementById(tab);
+    const targetBtn = document.getElementById("btn-" + tab);
+    if(targetTab) targetTab.classList.remove("hidden");
+    if(targetBtn) targetBtn.classList.add("tab-active");
+    
+    if(tab==="lista") renderTable(); 
+    if(tab==="dashboard") renderCharts();
+  } catch(err) {
+    console.error("Erro na navegação de abas:", err);
+  }
 }
 
 function criarFiltrosStatus(){
@@ -972,10 +978,11 @@ function renderCharts(){
 
   if(!cComp || !cProj || !cLojaComp || !cLojaProj) return;
 
-  if(chartCompetencia) chartCompetencia.destroy();
-  if(chartProjetado) chartProjetado.destroy();
-  if(window.chartLojaComp) window.chartLojaComp.destroy();
-  if(window.chartLojaProj) window.chartLojaProj.destroy();
+  // Proteção: Agora destruir as instâncias corretamente instanciadas, nunca o canvas.
+  if(instChartComp) instChartComp.destroy();
+  if(instChartProj) instChartProj.destroy();
+  if(instChartLojaComp) instChartLojaComp.destroy();
+  if(instChartLojaProj) instChartLojaProj.destroy();
 
   const compMan=new Array(12).fill(0), compExp=new Array(12).fill(0);
   const projMan=new Array(12).fill(0), projExp=new Array(12).fill(0);
@@ -1023,11 +1030,11 @@ function renderCharts(){
   const opts={responsive:true, plugins:{legend:{display:true}, tooltip:{callbacks:{label:c=>c.dataset.label+": R$ "+moeda(c.raw)}}, datalabels:{anchor:"end", align:"top", font:{size:8, weight:"bold"}, formatter:v=>v?"R$ "+moeda(v):""}}, scales:{y:{beginAtZero:true, ticks:{callback:v=>"R$ "+Number(v).toLocaleString("pt-BR")}}}};
   const optsLojas={responsive:true, plugins:{legend:{display:true}, tooltip:{callbacks:{label:c=>c.dataset.label+": R$ "+moeda(c.raw)}}, datalabels:{anchor:"end", align:"top", font:{size:7, weight:"bold"}, formatter:v=>v?moeda(v):""}}, scales:{y:{beginAtZero:true, ticks:{callback:v=>"R$ "+Number(v).toLocaleString("pt-BR")}}}, layout:{padding:{top:15}}};
 
-  chartCompetencia=new Chart(cComp,{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:compMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:compExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts});
-  chartProjetado=new Chart(cProj,{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:projMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:projExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts});
+  instChartComp=new Chart(cComp,{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:compMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:compExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts});
+  instChartProj=new Chart(cProj,{type:"bar", data:{labels:meses, datasets:[{label:"Manutenção", data:projMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:projExp, backgroundColor:"#f97316", borderRadius:6}]}, options:opts});
 
-  window.chartLojaComp=new Chart(cLojaComp,{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaCompMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaCompExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas});
-  window.chartLojaProj=new Chart(cLojaProj,{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaProjMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaProjExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas});
+  instChartLojaComp=new Chart(cLojaComp,{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaCompMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaCompExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas});
+  instChartLojaProj=new Chart(cLojaProj,{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaProjMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaProjExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas});
 }
 
 window.addEventListener("DOMContentLoaded", async ()=>{
