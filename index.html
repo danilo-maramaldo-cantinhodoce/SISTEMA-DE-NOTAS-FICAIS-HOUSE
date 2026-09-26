@@ -8,6 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Cliente JavaScript do Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{background:#f1f5f9}
 .tab-active{border-bottom:4px solid white;font-weight:900}
@@ -34,19 +36,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
     word-break:break-word;
 }
 
-/* Dimensionamento das 12 colunas da Tabela de Notas */
-.table-scroll th:nth-child(1), .table-scroll td:nth-child(1){width:6%;}  /* N NOTA */
-.table-scroll th:nth-child(2), .table-scroll td:nth-child(2){width:4%;}  /* TIPO */
-.table-scroll th:nth-child(3), .table-scroll td:nth-child(3){width:7%;}  /* EMISSAO */
-.table-scroll th:nth-child(4), .table-scroll td:nth-child(4){width:10%;} /* CNPJ EMITENTE */
-.table-scroll th:nth-child(5), .table-scroll td:nth-child(5){width:11%;} /* EMPRESA */
-.table-scroll th:nth-child(6), .table-scroll td:nth-child(6){width:8%;}  /* LOJA */
-.table-scroll th:nth-child(7), .table-scroll td:nth-child(7){width:11%;} /* DESCRIÇÃO */
-.table-scroll th:nth-child(8), .table-scroll td:nth-child(8){width:9%;}  /* VALOR */
-.table-scroll th:nth-child(9), .table-scroll td:nth-child(9){width:8%;}  /* PAGAMENTO */
-.table-scroll th:nth-child(10), .table-scroll td:nth-child(10){width:7%;} /* PARCELAS */
-.table-scroll th:nth-child(11), .table-scroll td:nth-child(11){width:10%;} /* STATUS */
-.table-scroll th:nth-child(12), .table-scroll td:nth-child(12){width:6%;}  /* ACOES */
+.table-scroll th:nth-child(1), .table-scroll td:nth-child(1){width:6%;}
+.table-scroll th:nth-child(2), .table-scroll td:nth-child(2){width:4%;}
+.table-scroll th:nth-child(3), .table-scroll td:nth-child(3){width:7%;}
+.table-scroll th:nth-child(4), .table-scroll td:nth-child(4){width:10%;}
+.table-scroll th:nth-child(5), .table-scroll td:nth-child(5){width:11%;}
+.table-scroll th:nth-child(6), .table-scroll td:nth-child(6){width:8%;}
+.table-scroll th:nth-child(7), .table-scroll td:nth-child(7){width:11%;}
+.table-scroll th:nth-child(8), .table-scroll td:nth-child(8){width:9%;}
+.table-scroll th:nth-child(9), .table-scroll td:nth-child(9){width:8%;}
+.table-scroll th:nth-child(10), .table-scroll td:nth-child(10){width:7%;}
+.table-scroll th:nth-child(11), .table-scroll td:nth-child(11){width:10%;}
+.table-scroll th:nth-child(12), .table-scroll td:nth-child(12){width:6%;}
 
 .field-label{display:block;font-size:11px;font-weight:900;color:#64748b;margin-bottom:7px;text-transform:uppercase}
 .input{width:100%;padding:12px;border:2px solid #f1f5f9;border-radius:9px;background:white}
@@ -160,7 +161,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
       </div>
       <div><label class="field-label">Status</label><select id="status_cadastro" class="input"></select></div>
 
-      <!-- Tabela de Parcelas -->
       <div class="md:col-span-3 bg-slate-50 p-5 rounded-xl border border-slate-200">
         <div class="flex justify-between items-center mb-3">
           <div>
@@ -170,11 +170,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
           <button type="button" onclick="adicionarParcelaRow('container_parcelas')" class="bg-blue-200 hover:bg-blue-300 text-blue-800 px-4 py-2 rounded-lg text-xs font-black">+ ADICIONAR PARCELA</button>
         </div>
         <div id="container_parcelas" class="space-y-3 mt-4">
-          <!-- Linhas dinâmicas -->
         </div>
       </div>
 
-      <button type="submit" class="md:col-span-3 bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-xl font-black text-lg shadow-lg">GRAVAR NOTA FISCAL</button>
+      <button type="submit" id="btnSalvarNota" class="md:col-span-3 bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-xl font-black text-lg shadow-lg">GRAVAR NOTA FISCAL</button>
     </form>
   </div>
 </section>
@@ -190,9 +189,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
       <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
         <div class="md:col-span-2"><label class="filter-label">Busca</label><input id="filtro_busca" oninput="renderTable()" placeholder="Nota, descrição, obs, fornecedor..." class="filter-input"></div>
         <div><label class="filter-label">Loja</label><select id="filtro_loja" onchange="renderTable()" class="filter-input"></select></div>
-        
         <div><label class="filter-label">Supervisor</label><input id="filtro_supervisor" oninput="renderTable()" placeholder="Buscar supervisor" class="filter-input"></div>
-        
         <div>
           <label class="filter-label">Responsável</label>
           <select id="filtro_responsavel" onchange="renderTable()" class="filter-input">
@@ -206,7 +203,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
             <option value="Karen">Karen</option>
           </select>
         </div>
-        
         <div><label class="filter-label">Emissão Inicial</label><input id="filtro_data_ini" type="date" onchange="renderTable()" class="filter-input"></div>
         <div><label class="filter-label">Emissão Final</label><input id="filtro_data_fim" type="date" onchange="renderTable()" class="filter-input"></div>
       </div>
@@ -342,7 +338,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
       </div>
       <div><label class="field-label">Status</label><select id="edit_status" class="input"></select></div>
 
-      <!-- Tabela Dinâmica de Parcelas - Edição -->
       <div class="md:col-span-3 bg-slate-50 p-5 rounded-xl border border-slate-200 mt-2">
         <div class="flex justify-between items-center mb-3">
           <div>
@@ -356,13 +351,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6!import
 
       <div class="md:col-span-3 border-t pt-5 flex justify-end gap-3">
         <button type="button" onclick="fecharEdicao()" class="px-6 py-3 rounded-lg bg-slate-200 font-bold">CANCELAR</button>
-        <button type="submit" class="px-8 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black">SALVAR ALTERAÇÕES</button>
+        <button type="submit" id="btnAtualizarNota" class="px-8 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black">SALVAR ALTERAÇÕES</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
+// Configurações do Supabase
+const SUPABASE_URL = "sb_publishable_JSVE3aetHB6mNOnNAbabmQ_5RT6YwCY";
+const SUPABASE_ANON_KEY = "sb_secret_ndCHHMy1QjPr33PHdbXE-g_NtjTTuMo";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const lojasDB={
 "Renascença":"19.644.944/0004-72","Vila Isabel":"19.644.944/0012-82","Festi Africanos":"44.016.976/0003-90",
 "São Cristóvão":"19.644.944/0006-34","CD-BR":"44.016.976/0001-28","Maiobão":"19.644.944/0003-91",
@@ -414,12 +414,22 @@ function mascaraCpfCnpj(input, badgeId){
     input.value = v;
 }
 
-function carregarNotas(){
-  const chaves=["notas_v6_db","notas_v5_db","notas_v4_db","notas_v3_db","notas_db","notas"];
-  for(const chave of chaves){try{const d=JSON.parse(localStorage.getItem(chave));if(Array.isArray(d)&&d.length)return d}catch(e){}}
-  return [];
+// Funções de Conectividade Assíncrona via Supabase
+async function carregarNotas(){
+  try {
+    const { data, error } = await supabase
+      .from('notas_fiscais')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    notas = data || [];
+    normalizarNotas();
+  } catch (err) {
+    console.error("Erro ao carregar dados do Supabase:", err);
+    alert("Falha ao carregar registros do banco de dados.");
+  }
 }
-function salvarNotas(){localStorage.setItem("notas_v6_db",JSON.stringify(notas))}
 
 function syncParcela(el, mudou) {
     const row = el.closest('.flex');
@@ -504,25 +514,34 @@ function extrairFaturasForm(containerId) {
 }
 
 function normalizarNotas(){
-  notas=notas.map((n,i)=>{
+  notas=notas.map((n)=>{
     const valor=Number(n.valor_total)||0;
-    let faturas=Array.isArray(n.faturas)?n.faturas:[];
+    let faturas=typeof n.faturas === 'string' ? JSON.parse(n.faturas) : (Array.isArray(n.faturas) ? n.faturas : []);
     const parcelas=n.parcelas || (faturas.length ? faturas.length+"x" : "1x");
     let statusCorrigido = statusList.includes(n.status) ? n.status : "Supervisor";
 
     return {
-      id:n.id||(Date.now()+i), numero:n.numero||n.nota||"", natureza:n.natureza||"DANFE",
-      data_emissao:n.data_emissao||n.emissao||"", cnpj_emitente:n.cnpj_emitente||"",
-      razao_social_prestador:n.razao_social_prestador||n.razao_social||"",
-      nome_fantasia_prestador:n.nome_fantasia_prestador||n.nome_fantasia||"",
-      loja:n.loja||"", cnpj_destino:n.cnpj_destino||lojasDB[n.loja]||"", 
-      descricao:n.descricao||"", observacao:n.observacao||"", responsavel:n.responsavel||n.solicitante||"", 
-      supervisor:n.supervisor||"", tipo_despesa:n.tipo_despesa||n.tipo||"Manutenção",
-      valor_total:valor, forma_pagamento:n.forma_pagamento||n.pagamento||"Boleto", parcelas,
-      status:statusCorrigido, faturas
+      id:n.id, 
+      numero:n.numero||"", 
+      natureza:n.natureza||"DANFE",
+      data_emissao:n.data_emissao||"", 
+      cnpj_emitente:n.cnpj_emitente||"",
+      razao_social_prestador:n.razao_social_prestador||"",
+      nome_fantasia_prestador:n.nome_fantasia_prestador||"",
+      loja:n.loja||"", 
+      cnpj_destino:n.cnpj_destino||lojasDB[n.loja]||"", 
+      descricao:n.descricao||"", 
+      observacao:n.observacao||"", 
+      responsavel:n.responsavel||"", 
+      supervisor:n.supervisor||"", 
+      tipo_despesa:n.tipo_despesa||"Manutenção",
+      valor_total:valor, 
+      forma_pagamento:n.forma_pagamento||"Boleto", 
+      parcelas,
+      status:statusCorrigido, 
+      faturas
     };
   });
-  salvarNotas();
 }
 
 function carregarLojas(){
@@ -551,11 +570,12 @@ function verificarNotaExistente(){
 }
 function atualizarCnpjEdicao(){const loja=edit_loja.value; edit_cnpj_destino.value=lojasDB[loja]||""}
 
-function showTab(tab){
+async function showTab(tab){
   document.querySelectorAll(".tab-content").forEach(e=>e.classList.add("hidden"));
   document.querySelectorAll(".tab-btn").forEach(e=>e.classList.remove("tab-active"));
   document.getElementById(tab).classList.remove("hidden");document.getElementById("btn-"+tab).classList.add("tab-active");
-  if(tab==="lista")renderTable(); if(tab==="dashboard")renderCharts();
+  if(tab==="lista") renderTable(); 
+  if(tab==="dashboard") renderCharts();
 }
 
 function criarFiltrosStatus(){
@@ -584,21 +604,51 @@ function criarFiltrosDash() {
   for(let y=ano-3;y<=ano+8;y++) sAno.add(new Option(y,y)); sAno.value=ano;
 }
 
-document.getElementById("nfForm").addEventListener("submit",function(e){
+document.getElementById("nfForm").addEventListener("submit", async function(e){
   e.preventDefault();
-  const numero=numero_nota.value.trim(), data=data_emissao.value, loja=loja_select.value, valor=Number(valor_total.value)||0;
+  const btn = document.getElementById("btnSalvarNota");
+  btn.disabled = true;
+  btn.innerText = "GRAVANDO...";
 
+  const numero=numero_nota.value.trim(), data=data_emissao.value, loja=loja_select.value, valor=Number(valor_total.value)||0;
   const parcelasObj = extrairFaturasForm("container_parcelas");
 
   const nova={
-    id:Date.now()+Math.floor(Math.random()*10000), numero, natureza:natureza.value, data_emissao:data,
-    cnpj_emitente:cnpj_emitente.value, razao_social_prestador:razao_social_prestador.value,
-    nome_fantasia_prestador:nome_fantasia_prestador.value, loja, cnpj_destino:lojasDB[loja]||"",
-    descricao:descricao.value, observacao:observacao.value, responsavel:responsavel.value, supervisor:document.getElementById("supervisor").value, tipo_despesa:tipo_despesa.value,
-    valor_total:valor, forma_pagamento:forma_pagamento.value, parcelas:parcelasObj.parcelasStr, status:document.getElementById("status_cadastro").value||"Supervisor",
+    numero, 
+    natureza:natureza.value, 
+    data_emissao:data,
+    cnpj_emitente:cnpj_emitente.value, 
+    razao_social_prestador:razao_social_prestador.value,
+    nome_fantasia_prestador:nome_fantasia_prestador.value, 
+    loja, 
+    cnpj_destino:lojasDB[loja]||"",
+    descricao:descricao.value, 
+    observacao:observacao.value, 
+    responsavel:responsavel.value, 
+    supervisor:document.getElementById("supervisor").value, 
+    tipo_despesa:tipo_despesa.value,
+    valor_total:valor, 
+    forma_pagamento:forma_pagamento.value, 
+    parcelas:parcelasObj.parcelasStr, 
+    status:document.getElementById("status_cadastro").value||"Supervisor",
     faturas:parcelasObj.faturas
   };
-  notas.push(nova); salvarNotas(); alert("✅ Nota cadastrada com sucesso!"); novoCadastro(); renderTable(); renderCharts();
+
+  try {
+    const { error } = await supabase.from('notas_fiscais').insert([nova]);
+    if (error) throw error;
+    alert("✅ Nota cadastrada no Supabase com sucesso!");
+    await carregarNotas();
+    novoCadastro(); 
+    renderTable(); 
+    renderCharts();
+  } catch (err) {
+    console.error("Erro ao salvar nota:", err);
+    alert("Erro ao gravar nota fiscal no banco de dados.");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "GRAVAR NOTA FISCAL";
+  }
 });
 
 function novoCadastro(){
@@ -633,7 +683,7 @@ function renderTable(){
     if(ini&&n.data_emissao<ini)return false; 
     if(fim&&n.data_emissao>fim)return false; 
     return true;
-  }).sort((a,b)=> b.id - a.id); // Ordenação baseada na data de cadastro (ID gerado cronologicamente).
+  });
   
   if(!arr.length){tbody.innerHTML='<tr><td colspan="12" class="p-12 text-center text-slate-400 font-bold">Nenhuma nota encontrada.</td></tr>';return}
   
@@ -654,8 +704,36 @@ function renderTable(){
   }).join("");
 }
 
-function alterarStatus(id,v){const n=notas.find(x=>String(x.id)===String(id)); if(n){n.status=v; salvarNotas(); renderTable(); renderCharts()}}
-function deleteNota(id){const n=notas.find(x=>String(x.id)===String(id)); if(!n)return; if(confirm("Tem certeza que deseja excluir a NF "+n.numero+"?")){notas=notas.filter(x=>String(x.id)!==String(id)); salvarNotas(); renderTable(); renderCharts()}}
+async function alterarStatus(id,v){
+  try {
+    const { error } = await supabase.from('notas_fiscais').update({ status: v }).eq('id', id);
+    if (error) throw error;
+    await carregarNotas();
+    renderTable(); 
+    renderCharts();
+  } catch (err) {
+    console.error("Erro ao alterar status:", err);
+    alert("Não foi possível atualizar o status.");
+  }
+}
+
+async function deleteNota(id){
+  const n=notas.find(x=>String(x.id)===String(id)); 
+  if(!n)return; 
+  if(confirm("Tem certeza que deseja excluir a NF "+n.numero+"?")){
+    try {
+      const { error } = await supabase.from('notas_fiscais').delete().eq('id', id);
+      if (error) throw error;
+      await carregarNotas();
+      renderTable(); 
+      renderCharts();
+    } catch (err) {
+      console.error("Erro ao remover registro:", err);
+      alert("Falha ao excluir a nota do banco de dados.");
+    }
+  }
+}
+
 function limparFiltros(){filtro_busca.value=""; filtro_loja.value=""; document.getElementById("filtro_supervisor").value=""; document.getElementById("filtro_responsavel").value=""; filtro_data_ini.value=""; filtro_data_fim.value=""; filtro_status.value=""; document.querySelectorAll(".status-btn").forEach(b=>b.classList.toggle("active",b.dataset.status==="")); renderTable()}
 
 function abrirEdicao(id){
@@ -681,21 +759,55 @@ function abrirEdicao(id){
 
   modalEdicao.classList.remove("hidden"); modalEdicao.classList.add("flex");
 }
+
 function fecharEdicao(){modalEdicao.classList.add("hidden"); modalEdicao.classList.remove("flex")}
 
-document.getElementById("formEdicao").addEventListener("submit",function(e){
-  e.preventDefault(); const n=notas.find(x=>String(x.id)===String(edit_id.value)); if(!n)return;
-  const valor=Number(edit_valor.value)||0, data=edit_data_emissao.value;
+document.getElementById("formEdicao").addEventListener("submit", async function(e){
+  e.preventDefault(); 
+  const id = edit_id.value;
+  const btn = document.getElementById("btnAtualizarNota");
+  btn.disabled = true;
+  btn.innerText = "SALVANDO...";
 
+  const valor=Number(edit_valor.value)||0, data=edit_data_emissao.value;
   const parcelasObj = extrairFaturasForm("edit_container_parcelas");
 
-  n.numero=edit_numero.value.trim(); n.natureza=edit_natureza.value; n.data_emissao=data; n.cnpj_emitente=edit_cnpj_emitente.value;
-  n.razao_social_prestador=edit_razao_social_prestador.value; n.nome_fantasia_prestador=edit_nome_fantasia_prestador.value;
-  n.loja=edit_loja.value; n.cnpj_destino=lojasDB[n.loja]||""; n.tipo_despesa=edit_tipo_despesa.value; n.descricao=edit_descricao.value;
-  n.observacao=edit_observacao.value; n.responsavel=edit_responsavel.value; n.supervisor=edit_supervisor.value; n.valor_total=valor; n.forma_pagamento=edit_pagamento.value; n.parcelas=parcelasObj.parcelasStr; 
-  n.status=edit_status.value; n.faturas=parcelasObj.faturas; 
-  
-  salvarNotas(); fecharEdicao(); renderTable(); renderCharts(); alert("✅ Nota atualizada com sucesso!");
+  const dadosAtualizados = {
+    numero: edit_numero.value.trim(),
+    natureza: edit_natureza.value,
+    data_emissao: data,
+    cnpj_emitente: edit_cnpj_emitente.value,
+    razao_social_prestador: edit_razao_social_prestador.value,
+    nome_fantasia_prestador: edit_nome_fantasia_prestador.value,
+    loja: edit_loja.value,
+    cnpj_destino: lojasDB[edit_loja.value]||"",
+    tipo_despesa: edit_tipo_despesa.value,
+    descricao: edit_descricao.value,
+    observacao: edit_observacao.value,
+    responsavel: edit_responsavel.value,
+    supervisor: edit_supervisor.value,
+    valor_total: valor,
+    forma_pagamento: edit_pagamento.value,
+    parcelas: parcelasObj.parcelasStr,
+    status: edit_status.value,
+    faturas: parcelasObj.faturas
+  };
+
+  try {
+    const { error } = await supabase.from('notas_fiscais').update(dadosAtualizados).eq('id', id);
+    if (error) throw error;
+    alert("✅ Nota atualizada com sucesso!");
+    await carregarNotas();
+    fecharEdicao(); 
+    renderTable(); 
+    renderCharts();
+  } catch (err) {
+    console.error("Erro ao atualizar nota:", err);
+    alert("Falha ao atualizar nota fiscal no banco de dados.");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "SALVAR ALTERAÇÕES";
+  }
 });
 
 function exportarDadosJSON(){
@@ -704,6 +816,7 @@ function exportarDadosJSON(){
   baixarBlob(blob,"backup_financas_pro.json");
 }
 function baixarBlob(blob,nome){const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=nome; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove()},1000)}
+
 function exportarExcel(){
   if(typeof XLSX==="undefined"){alert("A biblioteca Excel não foi carregada.");return}
   const dados=notas.map(n=>({
@@ -721,11 +834,12 @@ function exportarExcel(){
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Notas");
   XLSX.writeFile(wb,"financas_pro_notas.xlsx");
 }
+
 function normalizarCabecalho(v){return String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
 function valorColuna(r,nomes){const mapa={}; Object.keys(r).forEach(k=>mapa[normalizarCabecalho(k)]=r[k]); for(const n of nomes){const k=normalizarCabecalho(n); if(Object.prototype.hasOwnProperty.call(mapa,k)&&mapa[k]!=="")return mapa[k]} return ""}
 function normalizarCNPJ(v){let s=String(v??"").trim(); if(/^\d{14}$/.test(s)) s=s.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5"); return s}
-function chaveNota(n){return [String(n.numero||"").trim().toLowerCase(), String(n.cnpj_emitente||"").replace(/\D/g,""), String(n.loja||"").trim().toLowerCase()].join("|")}
-function importarDados(input){
+
+async function importarDados(input){
   const file=input.files[0]; if(!file)return; const reader=new FileReader();
   reader.onload=async e=>{try{
     let importadas=[];
@@ -736,19 +850,24 @@ function importarDados(input){
       const wb=XLSX.read(e.target.result,{type:"array"}), ws=wb.Sheets[wb.SheetNames.includes("Notas")?"Notas":wb.SheetNames[0]], rows=XLSX.utils.sheet_to_json(ws,{defval:""});
       importadas=rows.map(r=>{
         const loja=String(valorColuna(r,["Loja","Unidade","Filial"])||"").trim(); let faturas=[]; const fj=valorColuna(r,["Faturas JSON","Faturas"]); try{if(fj)faturas=JSON.parse(fj)}catch{}
-        return {id:valorColuna(r,["ID"]), numero:String(valorColuna(r,["Nº Nota","Numero da Nota","Número da Nota","Nota"] )||""), natureza:String(valorColuna(r,["Tipo","Natureza"])||"DANFE"), data_emissao:normalizarDataImport(valorColuna(r,["Data Emissão","Emissão","Data"])), cnpj_emitente:normalizarCNPJ(valorColuna(r,["CNPJ Emitente"])), razao_social_prestador:String(valorColuna(r,["Razão Social Prestador","Razão Social","Razao Social"])||""), nome_fantasia_prestador:String(valorColuna(r,["Nome Fantasia Prestador","Nome Fantasia"])||""), loja, cnpj_destino:normalizarCNPJ(valorColuna(r,["CNPJ Destino"])||lojasDB[loja]||""), descricao:String(valorColuna(r,["Descrição","Descricao"])||""), observacao:String(valorColuna(r,["Observação","Observacao"])||""), responsavel:String(valorColuna(r,["Responsável","Responsavel"])||""), supervisor:String(valorColuna(r,["Supervisor"])||""), tipo_despesa:String(valorColuna(r,["Classificação","Classificacao","Manutenção ou Expansão","Tipo Despesa"])||"Manutenção"), valor_total:normalizarValor(valorColuna(r,["Valor","Valor Total"])), forma_pagamento:String(valorColuna(r,["Forma Pagamento","Forma de Pagamento","Pagamento"])||"Boleto"), status:String(valorColuna(r,["Status"])||"Supervisor"), parcelas:String(valorColuna(r,["Parcelas","Qtd Parcelas","Quantidade de Parcelas"])||"1x"), faturas};
+        return {numero:String(valorColuna(r,["Nº Nota","Numero da Nota","Número da Nota","Nota"] )||""), natureza:String(valorColuna(r,["Tipo","Natureza"])||"DANFE"), data_emissao:normalizarDataImport(valorColuna(r,["Data Emissão","Emissão","Data"])), cnpj_emitente:normalizarCNPJ(valorColuna(r,["CNPJ Emitente"])), razao_social_prestador:String(valorColuna(r,["Razão Social Prestador","Razão Social","Razao Social"])||""), nome_fantasia_prestador:String(valorColuna(r,["Nome Fantasia Prestador","Nome Fantasia"])||""), loja, cnpj_destino:normalizarCNPJ(valorColuna(r,["CNPJ Destino"])||lojasDB[loja]||""), descricao:String(valorColuna(r,["Descrição","Descricao"])||""), observacao:String(valorColuna(r,["Observação","Observacao"])||""), responsavel:String(valorColuna(r,["Responsável","Responsavel"])||""), supervisor:String(valorColuna(r,["Supervisor"])||""), tipo_despesa:String(valorColuna(r,["Classificação","Classificacao","Manutenção ou Expansão","Tipo Despesa"])||"Manutenção"), valor_total:normalizarValor(valorColuna(r,["Valor","Valor Total"])), forma_pagamento:String(valorColuna(r,["Forma Pagamento","Forma de Pagamento","Pagamento"])||"Boleto"), status:String(valorColuna(r,["Status"])||"Supervisor"), parcelas:String(valorColuna(r,["Parcelas","Qtd Parcelas","Quantidade de Parcelas"])||"1x"), faturas};
       }).filter(x=>x.numero||x.valor_total);
     }
     if(!importadas.length){alert("Nenhum lançamento reconhecido no arquivo.");return}
-    const mapaId=new Map(notas.map(n=>[String(n.id),n])); const mapaChave=new Map(notas.map(n=>[chaveNota(n),n])); let novos=0,atualizados=0,ignorados=0;
-    importadas.forEach((raw,i)=>{if(!raw.numero){ignorados++;return} const existente=(raw.id&&mapaId.get(String(raw.id)))||mapaChave.get(chaveNota(raw)); const n=normalizarImportado({... (existente||{}),...raw},i); if(existente){Object.assign(existente,n,{id:existente.id}); atualizados++}else{notas.push(n); novos++}});
-    normalizarNotas(); salvarNotas(); renderTable(); renderCharts(); alert(`✅ Importação concluída.\n\nNovas: ${novos}\nAtualizadas: ${atualizados}\nIgnoradas: ${ignorados}`);
-  }catch(err){console.error(err);alert("Não foi possível importar o arquivo. Verifique os cabeçalhos e os dados da planilha.")} input.value=""};
+    
+    const { error } = await supabase.from('notas_fiscais').insert(importadas);
+    if (error) throw error;
+
+    await carregarNotas();
+    renderTable(); 
+    renderCharts(); 
+    alert(`✅ Importação de ${importadas.length} notas para o Supabase concluída com sucesso!`);
+  }catch(err){console.error(err);alert("Não foi possível importar os dados para o Supabase.")} input.value=""};
   if(file.name.toLowerCase().endsWith(".json")) reader.readAsText(file); else reader.readAsArrayBuffer(file);
 }
+
 function normalizarValor(v){if(typeof v==="number")return v; let s=String(v??"").trim().replace(/R\$/gi,"").replace(/\s/g,""); if(s.includes(",")) s=s.replace(/\./g,"").replace(",","."); return Number(s)||0}
 function normalizarDataImport(v){if(!v)return ""; if(typeof v==="number"&&typeof XLSX!=="undefined"){const d=XLSX.SSF.parse_date_code(v); return `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`} const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s; let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if(m)return `${m[3]}-${m[2]}-${m[1]}`; return s}
-function normalizarImportado(n,i){const id=n.id||(Date.now()+i+Math.floor(Math.random()*100000)); const valor=Number(n.valor_total)||0; const parcelas=n.parcelas || (n.faturas?.length ? n.faturas.length+"x" : "1x"); return {...n, id, numero:n.numero||"", natureza:n.natureza||"DANFE", data_emissao:n.data_emissao||"", cnpj_emitente:normalizarCNPJ(n.cnpj_emitente||""), razao_social_prestador:n.razao_social_prestador||"", nome_fantasia_prestador:n.nome_fantasia_prestador||"", loja:n.loja||"", cnpj_destino:n.cnpj_destino||lojasDB[n.loja]||"", descricao:n.descricao||"", observacao:n.observacao||"", responsavel:n.responsavel||"", supervisor:n.supervisor||"", tipo_despesa:["Manutenção","Expansão"].includes(n.tipo_despesa)?n.tipo_despesa:"Manutenção", valor_total:valor, forma_pagamento:n.forma_pagamento||"Boleto", status:statusList.includes(n.status)?n.status:"Supervisor", parcelas, faturas:Array.isArray(n.faturas)&&n.faturas.length?n.faturas:[]}}
 
 function renderCharts(){
   const ano=Number(document.getElementById("ano_select").value);
@@ -814,11 +933,17 @@ function renderCharts(){
   window.chartLojaProj=new Chart(document.getElementById("chartLojaProj"),{type:"bar", data:{labels:lojasLabels, datasets:[{label:"Manutenção", data:lojaProjMan, backgroundColor:"#3b82f6", borderRadius:6}, {label:"Expansão", data:lojaProjExp, backgroundColor:"#f97316", borderRadius:6}]}, options:optsLojas, plugins:[ChartDataLabels]});
 }
 
-window.addEventListener("DOMContentLoaded",()=>{
+window.addEventListener("DOMContentLoaded", async ()=>{
   criarFiltrosDash();
-  notas=carregarNotas(); normalizarNotas(); carregarLojas(); criarFiltrosStatus(); 
-  novoCadastro(); renderTable(); renderCharts(); showTab("cadastro");
+  carregarLojas(); 
+  criarFiltrosStatus(); 
+  await carregarNotas();
+  novoCadastro(); 
+  renderTable(); 
+  renderCharts(); 
+  showTab("cadastro");
 });
+
 document.getElementById("modalEdicao").addEventListener("click",e=>{if(e.target===e.currentTarget)fecharEdicao()});
 </script>
 </body>
