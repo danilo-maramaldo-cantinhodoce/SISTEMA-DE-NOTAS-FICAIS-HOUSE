@@ -1,0 +1,7 @@
+Notas canceladas em vermelho (adiciona mais uma aba entre arquivamento e concluído. vai se chamar cancelada. Quando for para lá deve ficar na cor vermelha parecido com o concluído que fica verde)
+gráficos interativos
+Ordenamento das linhas
+Remover campo Supervisor na aba de cadastro - o campo de responsável já tem essa função 
+Alterações no sistema de notas fiscais (preenchimento automático assim que preecnher o cnpj do fornecedor caso já tenha sido cadastrado) e razão social também já preencher  / remover o campo de supervisor (o preenchido por texto)/ na parte de nota projeção de pagamento deve aparecer um campo que some as parcelas./ incluir a importação por planilha excel. disponibilizar planilha para preenchimentoe importação.
+Alterar o domínio para um mais difícil
+adicionar o campo de classificação: (elétrica. hidráulica, refrigeração..)
